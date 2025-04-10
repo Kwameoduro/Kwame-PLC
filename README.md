@@ -9,6 +9,6 @@ This is the major class in the application:
 - [Bank Management System](https://github.com/Kwameoduro/Kwame-PLC/blob/master/src/bank/BankAccountManagementSystem.java)
 
 ### Requirement Specification
-The requirement specification document for the project can be found [here]().
+The requirement specification document for the project can be found [here](requirements_specification (Kwame Bank PLC).pdf).
 
 Enjoy the ride with me.
