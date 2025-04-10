@@ -202,7 +202,7 @@ public class BankAccountManagementSystem extends Application {
                     showAlert("Error", "Account not found");
                 }
             } catch (Exception ex) {
-                showAlert("Error", "Wrong deposit amount");
+                showAlert("Error", "cannot deposit");
             }
         });
 
@@ -219,7 +219,7 @@ public class BankAccountManagementSystem extends Application {
                         LocalDate maturityDate = fdAccount.getMaturityDate().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
                         LocalDate currentDate = LocalDate.now();
                         if (currentDate.isBefore(maturityDate)) {
-                            showAlert("Error", "Please withdrawals are not allowed until maturity date.");
+                            showAlert("Error", "Please withdrawal are not allowed until maturity date.");
                             return;
                         }
                     }
@@ -242,7 +242,7 @@ public class BankAccountManagementSystem extends Application {
                     showAlert("Try again", "Account not found");
                 }
             } catch (Exception ex) {
-                showAlert("Try again", "Invalid withdrawal amount");
+                showAlert("Try again", "You cannot withdraw the amount");
             }
         });
 
