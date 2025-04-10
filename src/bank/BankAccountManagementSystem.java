@@ -71,7 +71,6 @@ public class BankAccountManagementSystem extends Application {
         TextField amountField = new TextField();
         amountField.setPromptText("Amount (in GHC)");
 
-        // Added "GHC" denomination to amount field
         amountField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.startsWith("GHC") && !newValue.isEmpty()) {
                 amountField.setText("GHC " + newValue.replace("GHC", "").trim());
@@ -86,11 +85,8 @@ public class BankAccountManagementSystem extends Application {
 
         DatePicker maturityDatePicker = new DatePicker();
         maturityDatePicker.setPromptText("Maturity Date");
-
-        // Disable the maturity date picker initially
         maturityDatePicker.setDisable(true);
 
-        // Label to display the calculated interest rate
         Label interestRateLabel = new Label("Interest Rate: ");
 
         ComboBox<String> accountTypeBox = new ComboBox<>();
@@ -98,7 +94,6 @@ public class BankAccountManagementSystem extends Application {
         accountTypeBox.setPromptText("Select Account Type");
 
         accountTypeBox.setOnAction(e -> {
-            // Enable/Disable the maturity date field based on selected account type
             if ("Fixed Deposit".equals(accountTypeBox.getValue())) {
                 maturityDatePicker.setDisable(false);
             } else {
@@ -111,31 +106,29 @@ public class BankAccountManagementSystem extends Application {
         Button withdrawButton = new Button("Withdraw");
 
         ListView<String> transactionList = new ListView<>();
-
         TextArea accountListArea = new TextArea();
         accountListArea.setEditable(false);
 
         maturityDatePicker.setOnAction(e -> {
             try {
-                // Calculate the number of years between today and the maturity date
                 LocalDate currentDate = LocalDate.now();
                 LocalDate maturityDate = maturityDatePicker.getValue();
                 long yearsBetween = ChronoUnit.YEARS.between(currentDate, maturityDate);
 
-                double interestRate = 0;
+                double interestRate;
                 if (yearsBetween == 1) {
-                    interestRate = 15.0; // 15% for 1 year
+                    interestRate = 15.0;
                 } else if (yearsBetween == 2) {
-                    interestRate = 18.0; // 18% for 2 years
+                    interestRate = 18.0;
                 } else if (yearsBetween == 3) {
-                    interestRate = 30.0; // 30% for 3 years
+                    interestRate = 30.0;
                 } else if (yearsBetween > 3) {
-                    interestRate = 35.0; // 35% for more than 3 years
+                    interestRate = 35.0;
+                } else {
+                    interestRate = 0.0;
                 }
 
-                // Display the calculated interest rate
                 interestRateLabel.setText("Interest Rate: " + interestRate + "% for " + yearsBetween + " year(s)");
-
             } catch (Exception ex) {
                 showAlert("Error", "Please Enter a correct maturity date");
             }
@@ -160,24 +153,21 @@ public class BankAccountManagementSystem extends Application {
                     return;
                 }
 
-                switch (selectedType) {
-                    case "Savings" -> {
-                        double minBalance = Double.parseDouble(minBalanceField.getText());
-                        accounts.put(accountNumber, new SavingsAccount(accountNumber, balance, minBalance));
+                if (selectedType.equals("Savings")) {
+                    double minBalance = Double.parseDouble(minBalanceField.getText());
+                    accounts.put(accountNumber, new SavingsAccount(accountNumber, balance, minBalance));
+                } else if (selectedType.equals("Current")) {
+                    double overdraftLimit = Double.parseDouble(overdraftLimitField.getText());
+                    accounts.put(accountNumber, new CurrentAccount(accountNumber, balance, overdraftLimit));
+                } else if (selectedType.equals("Fixed Deposit")) {
+                    if (maturityDatePicker.getValue() == null) {
+                        showAlert("Error", "Please select maturity date for fixed deposit");
+                        return;
                     }
-                    case "Current" -> {
-                        double overdraftLimit = Double.parseDouble(overdraftLimitField.getText());
-                        accounts.put(accountNumber, new CurrentAccount(accountNumber, balance, overdraftLimit));
-                    }
-                    case "Fixed Deposit" -> {
-                        if (maturityDatePicker.getValue() == null) {
-                            showAlert("Error", "Please select maturity date for fixed deposit");
-                            return;
-                        }
-                        LocalDate maturityDate = maturityDatePicker.getValue();
-                        accounts.put(accountNumber, new FixedDepositAccount(accountNumber, balance, Date.valueOf(maturityDate)));
-                    }
+                    LocalDate maturityDate = maturityDatePicker.getValue();
+                    accounts.put(accountNumber, new FixedDepositAccount(accountNumber, balance, Date.valueOf(maturityDate)));
                 }
+
                 updateAccountList(accountListArea);
                 showAlert("Success", selectedType + " Your Account is Created");
 
@@ -213,22 +203,26 @@ public class BankAccountManagementSystem extends Application {
                 BankAccount account = findAccount(accountNumber);
 
                 if (account != null) {
-                    if (account instanceof FixedDepositAccount) {
-                        // Check if Fixed Deposit Account can withdraw
-                        FixedDepositAccount fdAccount = (FixedDepositAccount) account;
-                        LocalDate maturityDate = fdAccount.getMaturityDate().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-                        LocalDate currentDate = LocalDate.now();
-                        if (currentDate.isBefore(maturityDate)) {
-                            showAlert("Error", "Please withdrawal are not allowed until maturity date.");
+                    if (account instanceof FixedDepositAccount fdAccount) {
+                        LocalDate maturityDate = fdAccount.getMaturityDate().toInstant()
+                                .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                        if (LocalDate.now().isBefore(maturityDate)) {
+                            showAlert("Error", "Withdrawal is not allowed until maturity date.");
                             return;
                         }
                     }
 
-                    // Check for Savings Account Minimum Balance during withdrawal
-                    if (account instanceof SavingsAccount) {
-                        SavingsAccount savingsAccount = (SavingsAccount) account;
+                    if (account instanceof SavingsAccount savingsAccount) {
                         if (account.getBalance() - amount < savingsAccount.getMinimumBalance()) {
                             showAlert("Error", "You cannot withdraw at the moment.");
+                            return;
+                        }
+                    }
+                    // current account overdraft correctly implemented
+                    if (account instanceof CurrentAccount currentAccount) {
+                        double available = account.getBalance() + currentAccount.getOverdraftLimit();
+                        if (amount > available) {
+                            showAlert("Error", "Overdraft limit exceeded. Withdrawal denied.");
                             return;
                         }
                     }
@@ -242,14 +236,11 @@ public class BankAccountManagementSystem extends Application {
                     showAlert("Try again", "Account not found");
                 }
             } catch (Exception ex) {
-                showAlert("Try again", "You cannot withdraw the amount");
+                showAlert("Try again", "Not matured yet, you cannot withdraw the amount");
             }
         });
 
-        // Layout with tabs and styling
         TabPane tabPane = new TabPane();
-
-        // Tab for Account Management
         Tab accountTab = new Tab("Account Management");
         accountTab.setClosable(false);
 
@@ -281,7 +272,6 @@ public class BankAccountManagementSystem extends Application {
 
         accountTab.setContent(accountLayout);
 
-        // Tab for Transaction History
         Tab transactionTab = new Tab("Transaction History");
         transactionTab.setClosable(false);
 
@@ -289,23 +279,19 @@ public class BankAccountManagementSystem extends Application {
         transactionHistoryLayout.getChildren().add(transactionList);
         transactionTab.setContent(transactionHistoryLayout);
 
-        // Add tabs to tab pane
         tabPane.getTabs().addAll(accountTab, transactionTab);
 
-        // Account List View
         VBox accountListLayout = new VBox(10, new Label("Accounts Created"), accountListArea);
         accountListLayout.setPadding(new Insets(15));
 
-        // Final layout with bold heading
         VBox mainLayout = new VBox(10);
         Label heading = new Label("Kwame Bank PLC");
-        heading.setFont(Font.font("Arial", 20));  // Bold heading
+        heading.setFont(Font.font("Arial", 20));
         mainLayout.getChildren().addAll(heading, tabPane, accountListLayout);
         mainLayout.setPadding(new Insets(15));
 
-        // Scene styling
         Scene scene = new Scene(mainLayout, 600, 800);
-        scene.setFill(Color.LIGHTGRAY);  // Background color for the scene
+        scene.setFill(Color.LIGHTGRAY);
         primaryStage.setTitle("Bank Account Management");
         primaryStage.setScene(scene);
         primaryStage.show();
