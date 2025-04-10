@@ -27,7 +27,7 @@ public class CurrentAccount extends BankAccount implements BankOperations {
         return balance;
     }
 
-    // Getter for overdraft limit
+    // Get method for overdraft limit
     public double getOverdraftLimit() {
         return overdraftLimit;
     }
