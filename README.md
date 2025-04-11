@@ -1,7 +1,7 @@
 # The Bank Account Management System
 
 ## Kwame Bank-PLC
-Kwame Bank-PLC is an application for a (hypothetical) bank that allows users create savings account, current account and fixed deposit account. 
+Kwame Bank-PLC is an application for a (hypothetical) bank that allows the creating of savings account, current account and fixed deposit account. 
 
 Kwame Bank-PLC has a user friendly interface.
 
